@@ -37,20 +37,25 @@ numKG<-as.numeric(KG)
 
 #Generate univariate ROC curves for TP and KG predictors
 TProc<-roc(Success~numTP, plot=T, data=hw1data, auc=T, ci=T)
+#print(TProc)
 KGroc<-roc(Success~numKG, plot=T, data=hw1data, auc=T, ci=T)
+#print(KGroc)
 vTProc<-var(TProc)
 vKGroc<-var(KGroc)
 #plotTProc
 
 #Generate multivariate ROC curves for combined TP and KG predictors
-multROC <- glm(Success~numTP+numKG, family=gaussian)
+multROC <- glm(Success~numTP+numKG, family=binomial(logit))
 combroc <-roc(multROC$y , multROC$fitted.values,auc=T, ci=T)
+#print(combroc)
 vcombroc <- var(combroc)
 
 
 #Comparing AUC's of ROC curves
-#compTP_KG<-roc.test(TProc, KGroc, paired=F)
-#compTP_combroc<-roc.test(TProc, combroc)
-#compKG_combroc<-roc.test(KGroc, combroc)
+compTP_KG<-roc.test(TProc, KGroc)
+compTP_combroc<-roc.test(TProc, combroc)
+compKG_combroc<-roc.test(KGroc, combroc)
 
-rocplot_TP<-plot.roc(KGroc, xlab="1-spec", ylab = "sens", col="blue")
+#rocplot_TP<-plot.roc(TProc,col="blue", legacy.axes = T, xlab="1-spec", ylab = "sens", main="ROC curve for TP predictor")
+#rocplot_TP<-plot.roc(KGroc,col="blue", legacy.axes = T, xlab="1-spec", ylab = "sens", main="ROC curve for KG predictor")
+# rocplot_TP<-plot.roc(combroc,col="blue", legacy.axes = T, xlab="1-spec", ylab = "sens", main="ROC curve for Combined predictor")
