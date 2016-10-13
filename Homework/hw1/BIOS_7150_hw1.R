@@ -10,9 +10,7 @@ L_2=G.test(spank_o)
 #Q2####
 data_o2=c(56, 22, 12, 60)
 spank_o2<-matrix(data_o2, nrow=2, byrow=T)
-data_e2<-c(35.36, 42.64, 32.64, 39.36)
-spank_e2<-matrix(data_e2, byrow = T)
-L_2_prob2=G.test(spank_o2)
+mcnmr_spank <- mcnemar.test(spank_o2, correct = FALSE)
 
 #Q3####
 #Part a
