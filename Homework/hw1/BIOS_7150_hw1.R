@@ -1,10 +1,19 @@
-###BIOS 7150 Homework 1###
+###BIOS 7150 Homework 1####
+##for future work, consider 'plotROC' package"
+if (!require(pwr))
+  install.packages("pwr")
+if(!require(tidyverse))
+  install.packages("tidyverse")
+if(!require(pROC))
+  install.packages("pROC")
+if(!require(RVAideMemoire))
+  install.packages("RVAideMemoire")
+
 #Q1####
 data_o=c(55, 68, 95, 82)
 spank_o<-matrix(data_o, nrow=2, byrow=T)
 data_e<-c(61.5, 61.5, 88.5, 88.5)
 spank_e<-matrix(data_e, byrow = T)
-library(RVAideMemoire)
 L_2=G.test(spank_o)
 
 #Q2####
@@ -14,7 +23,6 @@ mcnmr_spank <- mcnemar.test(spank_o2, correct = FALSE)
 
 #Q3####
 #Part a
-library(pwr)
 tourniquet<-matrix(c(0.1875, 0.045, 0.5625, 0.205), nrow=2, byrow=T)
 w <- ES.w2(tourniquet)
 tourniquet_pwer<-pwr.chisq.test(w, df=1, power=0.8, sig.level=0.05)
@@ -27,7 +35,6 @@ tourniquet_pwer_eqln<-pwr.chisq.test(w_eqln, df=1, power=0.8, sig.level=0.05)
 print(tourniquet_pwer_eqln)
 
 #Q4####
-library(pROC)
 hw1data<-read.table(file="C:/Users/Rick/Documents/Tulane/MPH/BIOS\ 7150/Homework/hw1/Duke\ U\ surgery\ success.dat", header=T, sep="")
 attach(hw1data)
 numTP<-as.numeric(TP) #make KG and TP predictors numeric
