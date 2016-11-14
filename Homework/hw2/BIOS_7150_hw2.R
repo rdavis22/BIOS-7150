@@ -16,7 +16,7 @@ if(!require(multcomp))
   install.packages("multcomp")
 
 #Read in hw2.dat
-#raw_hw2data<-read.table(file=file.choose(), header=T)
+raw_hw2data<-read.table(file=file.choose(), header=T)
 
 
 #relevel raw_hw2data to have "Yes" as first level of "Breast_Cancer" variable and... 
