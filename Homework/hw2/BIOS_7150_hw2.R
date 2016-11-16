@@ -1,22 +1,18 @@
 ####BIOS 7150 Hw2####
 #rm(list=ls())
-if(!require(readr))
-  install.packages("readr")
-if(!require(dplyr))
-  install.packages("dplyr")
-if(!require(effects))
-  install.packages("effects")
+if(!require(tidyverse))
+  install.packages("tidyverse")
+if(!require(Cairo))
+  install.packages("Cairo")
 if(!require(car))
   install.packages("car")
-if(!require(ggplot2))
-  install.packages("ggplot2")
 if(!require(xlsx))
   install.packages("xlsx")
 if(!require(multcomp))
   install.packages("multcomp")
 
 #Read in hw2.dat
-raw_hw2data<-read.table(file=file.choose(), header=T)
+#raw_hw2data<-read.table(file=file.choose(), header=T)
 
 
 #relevel raw_hw2data to have "Yes" as first level of "Breast_Cancer" variable and... 
@@ -79,41 +75,38 @@ hw2_FME<-glm(Breast_Cancer~Menopausal_Status+Quartile_biomarker, data=raw_hw2dat
 L_2_FME<--2*logLik(hw2_FME)#L^2=5496.3, 5 df
 
 ##Part C: Plotting Log odds
-###Eventually need to convert below into a loop with ggplot2 graphics###
 #get predicted log odds of selected model
 logodds<-predict.glm(hw2_forward)
-#plot each logodds w/ "points" command
-plot(logodds[1:2], main="Predicted Log Odds of Predictors from Selected Model",
-     xlab="N/a", ylab = "Ln(Odds)", xaxt='n', col=1,
-     type="b",xlim=c(1,3), ylim=c(-1.5, 0), pch=19) #pch)
-points(logodds[3:4], col=2, type = "b", pch=19)
-points(logodds[5:6], col=3, type="b", pch=19)
-points(logodds[7:8], col=4, type="b", pch=19)
-points(logodds[9:10], col=5, type ="b", pch=19)
-points(logodds[11:12], col=6, type="b", pch=19)
-points(logodds[13:14], col=7, type="b", pch=19)
-points(logodds[15:16], col=8, type="b", pch=19)
-
-#add legend
-parameters<-c("Intercept", "Quartile_biomarker2", "Quartile_biomarker3", "Quartile_biomarker4",
-              "Menopausal_StatusPostmenopausal", "Qb2:MSPost", "Qb3:MSPost", "Qb4:MSPost")
-colors<-c("1", "2", "3", "4", "5", "6", "7", "8")
-legend(x=2.1, y=0.1, legend = parameters, col=colors, pch=19, bty="n", cex=0.9)
+#get log odds of premenopausal women
+lodds_pre<-logodds[seq(1, length(logodds)/2, 2)]
+names(lodds_pre)<-c("Quart_bio1", "Quart_bio2",
+                    "Quart_bio3", "Quart_bio4")
+#get log odds of postmenopausal women
+lodds_post<-logodds[seq(length(logodds)/2+1, length(logodds), 2)]
+p_df<-data.frame(lodds_pre, lodds_post, names(lodds_pre))
+p<-ggplot(p_df)+
+  #add postmenopausal log odds points to plot
+  geom_point(aes(x=names.lodds_pre., y=lodds_post, colour="postmenopausal"), size=2.5)+
+  geom_point(aes(x=names.lodds_pre., y=lodds_pre, colour="premenopausal"), size=2.5)+
+  #add a connecting line between points to plot
+  geom_line(aes(x=names.lodds_pre., y=lodds_post), group=1)+
+  geom_line(aes(x=names.lodds_pre., y=lodds_pre), group=2)+
+  #add axis and main title
+  labs(title="Predicted log odds for Quartiles in Pre-vs.Post-menopausal women",
+       x="Biomarker Quartiles", y="Predicted Log Odds")
+print(p)
+##Save Plot##
+out_flnme<-"BIOS_7150_hw2.png"
+path_p<-"c:/Users/Rick/Documents/Tulane/MPH/BIOS\ 7150/Homework/hw2"
+ggsave(file=out_flnme, path=path_p)
+dev.off()
 
 #Part D: Goodness of Fit statistic
 L_2_sat<--2*logLik(hw2_sat)
 L_2_forward<--2*logLik(hw2_forward)
 hw2_GoF<-L_2_forward-L_2_sat#hw2_GoF=3.19, df=4(#significant coeffs from L_2_sat-#significant coeffs from L_2_forward)
 
-####Hw Q2####
-##Part A-Odds Ratios##
-# OR_hw2_forward<-exp(cbind(OR = coef(hw2_forward ), confint(hw2_forward)))
-#get data frame of logodds coefficients and their SE's and write to xlsx file
-# OR_hw2.df<-data.frame(summary(hw2_forward)$coefficients)
-# write.xlsx2(OR_hw2.df, "c:/Users/Rick/Documents/Tulane/MPH/BIOS_7150/Homework/hw2/hw2_OR.xlsx")
-# #get covariance matrix for hw2_forward
-# hw2_cov<-vcov(hw2_forward)
-
+####Hw 2 Q2####
 #Odds Ratios for multiple comparison test of "Menopausal_Status"
 K1 <- glht(hw2_forward, mcp(Menopausal_Status = "Tukey"))$linfct
 #Odds Ratios for multiple comparison test of "Quartile_Biomarker"
