@@ -21,7 +21,7 @@ if(!require(bestglm))
 hw3data<-read_csv(file=file.choose(), col_names = T)
 hw3data<-as_tibble(hw3data)
  
-#replace "." with "NA" for missing values
+#replace "." with "NA" for missing values in "hins" outcome variable
 for (i in seq_along(hw3data$hins)){
   if (hw3data$hins[i]=="."){
     hw3data$hins[i]<-NA
@@ -29,11 +29,11 @@ for (i in seq_along(hw3data$hins)){
 }
 
 #convert columns to class "factor"
-hw3data<-colwise(factor)(hw3data)
+hw3data<-colwise(as.factor)(hw3data)
 attach(hw3data)
 
 ###initial model####
-hypins_model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat, family="binomial", data=hw3data)
+hypins.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat, family="binomial", data=hw3data)
 #summary(hypins_model)
 
 ###Testing for trend for age, hdl, and bmi####
@@ -61,12 +61,35 @@ cont_bmicat<-as.factor(bmicat)
 # 3  0.6708204  0.5  0.2236068
 # Levels: . 1 2 3
 ##Comment out the contrasts for hdl and bmi since there are not significant trends
-hypins_ord_model<-glm(hins~gender+ethnic+cont_agegr+cont_hdlcat+cont_bmicat, family="binomial", data=hw3data)
+hypins_ord.model<-glm(hins~gender+ethnic+cont_agegr+cont_hdlcat+cont_bmicat, family="binomial", data=hw3data)
 ##none of the linear trend effects are significant when the model is run. Therefore,
 ##having a linear trend does not simplify the model
 ###"Bestglm"####
-#reorder columns to have response var "hypins"
+#reorder columns to have response var "hypins" in last colum for "bestglm"
 hw3data_bestglm<-hw3data[c("gender", "ethnic", "agegr", "hdlcat", "bmicat",
                            "hins")]%>%
+  #omit missing values
   na.omit()
-hypins_bestglm_model<-bestglm(hw3data_bestglm, family=binomial, IC="AIC")
+#run best glm
+hypins_bestglm.model<-bestglm(hw3data_bestglm, family=binomial, IC="AIC")
+#best model
+best_final.model<-glm(hins~gender+ethnic+hdlcat+bmicat, family=binomial, data=hw3data_bestglm)
+
+###Built-in R "step" function model selection####
+#null model
+hw3_null.model <- glm(hins~ 1, data=hw3data_bestglm, family=binomial)
+#saturated model
+hw3_sat.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat+gender*ethnic+
+                     gender*agegr+gender*hdlcat+gender*bmicat+ethnic*agegr+
+                     ethnic*hdlcat+ethnic*bmicat+agegr*hdlcat+agegr*bmicat+
+                     hdlcat*bmicat, data=hw3data_bestglm, family=binomial)
+#forward selection
+hw3_forward.model <- step(hw3_null.model, scope=list(lower=formula(hw3_null.model),
+                                        upper=formula(hw3_sat.model)), 
+                   direction="forward")
+#backward selection
+hw3_backwards.model <- step(hw3_sat.model)
+#stepwise selection
+hw3_step.model <- step(hw3_null.model, list(lower=formula(hw3_null.model),
+                                      upper=formula(hw3_sat.model)), 
+                       direction="both",trace=0)
