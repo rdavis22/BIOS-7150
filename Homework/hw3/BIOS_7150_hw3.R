@@ -15,28 +15,37 @@ if(!require(rms))
   install.packages("rms")
 if(!require(bestglm))
   install.packages("bestglm")
+if(!require(multcomp))
+  install.packages("multcomp")
 
-###Data Transformation####
+
+####Q1 Parts 1=3: Finding the Best model####
+###Data Transformation###
 #read in data
-hw3data<-read_csv(file=file.choose(), col_names = T)
+# hw3data<-read_csv(file=file.choose(), col_names = T)
 hw3data<-as_tibble(hw3data)
  
-#replace "." with "NA" for missing values in "hins" outcome variable
-for (i in seq_along(hw3data$hins)){
-  if (hw3data$hins[i]=="."){
-    hw3data$hins[i]<-NA
-  }  
-}
+#replace "." with "NA" for missing values in all values in all variables
+# loop through each column
+# for (i in seq_along(hw3data)){
+#   #loop through each value in each column
+#   for (j in seq_along(hw3data[[i]])){
+#     if (hw3data[[i]][j]=="."){
+#       hw3data[[i]][j]<-NA
+#     }
+#   }
+# }
+
 
 #convert columns to class "factor"
 hw3data<-colwise(as.factor)(hw3data)
 attach(hw3data)
 
-###initial model####
+###initial model###
 hypins.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat, family="binomial", data=hw3data)
 #summary(hypins_model)
 
-###Testing for trend for age, hdl, and bmi####
+###Testing for trend for age, hdl, and bmi###
 contrasts(agegr)<-contr.poly(3)
 cont_agegr<-as.factor(agegr)
 # .L         .Q
@@ -44,38 +53,41 @@ cont_agegr<-as.factor(agegr)
 # 2 -7.850462e-17 -0.8164966
 # 3  7.071068e-01  0.4082483
 # Levels: 1 2 3
-contrasts(hdlcat)<-contr.poly(4)
+contrasts(hdlcat)<-contr.poly(3)
 cont_hdlcat<-as.factor(hdlcat)
-# .L   .Q         .C
-# . -0.6708204  0.5 -0.2236068
-# 1 -0.2236068 -0.5  0.6708204
-# 2  0.2236068 -0.5 -0.6708204
-# 3  0.6708204  0.5  0.2236068
-# Levels: . 1 2 3
-contrasts(bmicat)<-contr.poly(4)
+# .L         .Q
+# 1 -7.071068e-01  0.4082483
+# 2 -7.850462e-17 -0.8164966
+# 3  7.071068e-01  0.4082483
+# Levels: 1 2 3
+contrasts(bmicat)<-contr.poly(3)
 cont_bmicat<-as.factor(bmicat)
-# .L   .Q         .C
-# . -0.6708204  0.5 -0.2236068
-# 1 -0.2236068 -0.5  0.6708204
-# 2  0.2236068 -0.5 -0.6708204
-# 3  0.6708204  0.5  0.2236068
-# Levels: . 1 2 3
+# .L         .Q
+# 1 -7.071068e-01  0.4082483
+# 2 -7.850462e-17 -0.8164966
+# 3  7.071068e-01  0.4082483
+# Levels: 1 2 3
 ##Comment out the contrasts for hdl and bmi since there are not significant trends
 hypins_ord.model<-glm(hins~gender+ethnic+cont_agegr+cont_hdlcat+cont_bmicat, family="binomial", data=hw3data)
-##none of the linear trend effects are significant when the model is run. Therefore,
-##having a linear trend does not simplify the model
-###"Bestglm"####
+#cont_agegr.L==>Pr(>|z|)=0.185
+#cont_hdlcat.L==>Pr(>|z|)=3.34e-5 (.Q=0.347)
+#cont_bmicat.L==>Pr(>|z|)=<2e-16 (.Q=0.446)
+###"Bestglm"###
 #reorder columns to have response var "hypins" in last colum for "bestglm"
-hw3data_bestglm<-hw3data[c("gender", "ethnic", "agegr", "hdlcat", "bmicat",
-                           "hins")]%>%
-  #omit missing values
+detach(hw3data)
+hw3data_bestglm<-data.frame(hw3data$gender, hw3data$ethnic, hw3data$agegr,
+                            cont_hdlcat, cont_bmicat, hw3data$hins)%>%
   na.omit()
+#rename the variables of the data frame
+names(hw3data_bestglm)<-c("gender", "ethnic", "agegr", "hdlcat", "bmicat"
+                          , "hins")
 #run best glm
 hypins_bestglm.model<-bestglm(hw3data_bestglm, family=binomial, IC="AIC")
+attach(hw3data_bestglm)
 #best model
-best_final.model<-glm(hins~gender+ethnic+hdlcat+bmicat, family=binomial, data=hw3data_bestglm)
+best_final.model<-glm(hins~ethnic+hdlcat+bmicat, family=binomial, data=hw3data_bestglm)
 
-###Built-in R "step" function model selection####
+###Built-in R "step" function model selection###
 #null model
 hw3_null.model <- glm(hins~ 1, data=hw3data_bestglm, family=binomial)
 #saturated model
@@ -85,11 +97,47 @@ hw3_sat.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat+gender*ethnic+
                      hdlcat*bmicat, data=hw3data_bestglm, family=binomial)
 #forward selection
 hw3_forward.model <- step(hw3_null.model, scope=list(lower=formula(hw3_null.model),
-                                        upper=formula(hw3_sat.model)), 
+                                        upper=formula(hw3_sat.model)),
                    direction="forward")
 #backward selection
 hw3_backwards.model <- step(hw3_sat.model)
 #stepwise selection
 hw3_step.model <- step(hw3_null.model, list(lower=formula(hw3_null.model),
-                                      upper=formula(hw3_sat.model)), 
+                                      upper=formula(hw3_sat.model)),
                        direction="both",trace=0)
+
+###Q1 Part 4: Odds Ratios and Plots of predicted log odds####
+##Get pairwise comparisons##
+#Odds Ratios for multiple comparison test of "ethnic"
+K1 <- glht(best_final.model, mcp(ethnic = "Tukey"))$linfct
+#Odds Ratios for multiple comparison test of "hdlcat"
+K2 <- glht(best_final.model, mcp(hdlcat = "Tukey"))$linfct
+#Odds Ratios for multiple comparison test of "bmicat"
+K3 <- glht(best_final.model, mcp(bmicat = "Tukey"))$linfct
+#All pairwise comparison tests
+All_OR <- glht(best_final.model, linfct = rbind(K1, K2, K3))
+#Get Confidence Intervals
+All_OR_cint <-confint(All_OR)
+
+##Plots of predicted log odds##
+#predicted log odds of the model
+logodds<-predict.glm(best_final.model)
+#predicted log odds of ethnic and hdlcat (3 levels) (bmicat=0)
+pred_ethn1_hdl<-c(0.5263, 0.5263+-0.4209, 0.5263+-1.2189)
+pred_ethn2_hdl<-c(0.5262+0.9549, 0.5263+0.9549+-0.4209, 0.5263+0.9549+-1.2189)
+#predicted log odds of ethnic and bmicat (hdlcat=0)
+pred_ethn1_bmi<-c(0.5263, 0.5263+-4.5083, 0.5263+-2.5930,0.5263+-0.9568)
+pred_ethn2_bmi<-c(0.5263+0.9549, 0.5263+0.9549+-4.5083, 
+                  0.5263+0.9549+-2.5930, 0.5263+0.9549+-0.9568)
+#predicted log odds of hdlcat and bmicat(ethnic=0)
+pred_hdlcat1_bmi<-c(0.5263, 0.5263, 0.5263, 0.5263)
+pred_hdlcat2_bmi<-c(0.5263+-0.4209, 0.5263+-0.4209+-4.5083,
+               0.5263+-0.4209+-2.5930, 0.5263+-0.4209+-0.9568)
+pred_hdlcat3_bmi<-c(0.5263+-1.2189, 0.5263+-1.2189,
+               0.5263+-1.2189, 0.5263+-1.2189)
+#create dataframes for ggplot2
+# names(pred_ethn1_hdl)<-c("hdlcat1", "hdlcat2", "hdlcat3")
+# names(pred_ethn1_bmi)<-c("bmicat0", "bmicat1")
+# ethnhdl.data
+# ethnbmi.data
+# hdlbmi.data
