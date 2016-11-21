@@ -22,19 +22,19 @@ if(!require(multcomp))
 ####Q1 Parts 1=3: Finding the Best model####
 ###Data Transformation###
 #read in data
-# hw3data<-read_csv(file=file.choose(), col_names = T)
+hw3data<-read_csv(file=file.choose(), col_names = T)
 hw3data<-as_tibble(hw3data)
  
 #replace "." with "NA" for missing values in all values in all variables
-# loop through each column
-# for (i in seq_along(hw3data)){
-#   #loop through each value in each column
-#   for (j in seq_along(hw3data[[i]])){
-#     if (hw3data[[i]][j]=="."){
-#       hw3data[[i]][j]<-NA
-#     }
-#   }
-# }
+loop through each column
+for (i in seq_along(hw3data)){
+  #loop through each value in each column
+  for (j in seq_along(hw3data[[i]])){
+    if (hw3data[[i]][j]=="."){
+      hw3data[[i]][j]<-NA
+    }
+  }
+}
 
 
 #convert columns to class "factor"
@@ -118,26 +118,51 @@ K3 <- glht(best_final.model, mcp(bmicat = "Tukey"))$linfct
 All_OR <- glht(best_final.model, linfct = rbind(K1, K2, K3))
 #Get Confidence Intervals
 All_OR_cint <-confint(All_OR)
+detach(hw3data_bestglm)
 
 ##Plots of predicted log odds##
 #predicted log odds of the model
 logodds<-predict.glm(best_final.model)
-#predicted log odds of ethnic and hdlcat (3 levels) (bmicat=0)
-pred_ethn1_hdl<-c(0.5263, 0.5263+-0.4209, 0.5263+-1.2189)
-pred_ethn2_hdl<-c(0.5262+0.9549, 0.5263+0.9549+-0.4209, 0.5263+0.9549+-1.2189)
-#predicted log odds of ethnic and bmicat (hdlcat=0)
-pred_ethn1_bmi<-c(0.5263, 0.5263+-4.5083, 0.5263+-2.5930,0.5263+-0.9568)
-pred_ethn2_bmi<-c(0.5263+0.9549, 0.5263+0.9549+-4.5083, 
-                  0.5263+0.9549+-2.5930, 0.5263+0.9549+-0.9568)
-#predicted log odds of hdlcat and bmicat(ethnic=0)
-pred_hdlcat1_bmi<-c(0.5263, 0.5263, 0.5263, 0.5263)
-pred_hdlcat2_bmi<-c(0.5263+-0.4209, 0.5263+-0.4209+-4.5083,
-               0.5263+-0.4209+-2.5930, 0.5263+-0.4209+-0.9568)
-pred_hdlcat3_bmi<-c(0.5263+-1.2189, 0.5263+-1.2189,
-               0.5263+-1.2189, 0.5263+-1.2189)
+#predicted log odds of ethnic (2 levels) and hdlcat (3 levels) (bmicat=1)
+pred_ethn1_hdl<-c(-2.7014+2.5104-0.8629,-2.7014+2.5104+(2*-0.8629),
+                  -2.7014+2.5104+(3*-0.8629))
+pred_ethn2_hdl<-c(-2.7014+2.5104+0.9467+-0.8629,-2.7014+2.5104+0.9467+(2*-0.8629),
+                  -2.7014+2.5104+0.9467+(3*-0.8629))
+#predicted log odds of ethnic and bmicat (hdlcat=1)
+pred_ethn1_bmi<-c(-2.7014+-0.8629+2.5104,-2.7014+-0.8629+(2*2.5104),
+                  -2.7014+-0.8629+(3*2.5104))
+pred_ethn2_bmi<-c(-2.7014+-0.8629+0.9467+2.5104,-2.7014+-0.8629+0.9467+(2*2.5104),
+                   -2.7014+-0.8629+0.9467+(3*2.5104))
 #create dataframes for ggplot2
-# names(pred_ethn1_hdl)<-c("hdlcat1", "hdlcat2", "hdlcat3")
-# names(pred_ethn1_bmi)<-c("bmicat0", "bmicat1")
-# ethnhdl.data
-# ethnbmi.data
-# hdlbmi.data
+names(pred_ethn1_hdl)<-c("hdlcat1", "hdlcat2", "hdlcat3")
+names(pred_ethn1_bmi)<-c("bmicat1", "bmicat2", "bmicat3")
+ethnhdl.data<-data.frame(pred_ethn1_hdl, pred_ethn2_hdl,
+                         names(pred_ethn1_hdl))
+ethnbmi.data<-data.frame(pred_ethn1_bmi, pred_ethn2_bmi,
+                         names(pred_ethn1_bmi))
+#Plots for Predicted Log Odds#
+#Plot of predicted log odds for
+p_hdl<-ggplot(ethnhdl.data)+
+  #add postmenopausal log odds points to plot
+  geom_point(aes(x=names.pred_ethn1_hdl., y=pred_ethn1_hdl,
+                 colour="Whites"), size=2.5)+
+  geom_point(aes(x=names.pred_ethn1_hdl., y=pred_ethn2_hdl,
+                 colour="AA"), size=2.5)+
+  #add a connecting line between points to plot
+  geom_line(aes(x=names.pred_ethn1_hdl., y=pred_ethn1_hdl), group=1)+
+  geom_line(aes(x=names.pred_ethn1_hdl., y=pred_ethn2_hdl), group=2)+
+  #add axis and main title
+  labs(title="Log odds for Hyperinsulinemia by HDL in Whites vs. AA (bmicat=1)",
+       x="HDL", y="Predicted Log Odds")
+p_bmi<-ggplot(ethnbmi.data)+
+  #add postmenopausal log odds points to plot
+  geom_point(aes(x=names.pred_ethn1_bmi., y=pred_ethn1_bmi,
+                 colour="Whites"), size=2.5)+
+  geom_point(aes(x=names.pred_ethn1_bmi., y=pred_ethn2_bmi,
+                 colour="AA"), size=2.5)+
+  #add a connecting line between points to plot
+  geom_line(aes(x=names.pred_ethn1_bmi., y=pred_ethn1_bmi), group=1)+
+  geom_line(aes(x=names.pred_ethn1_bmi., y=pred_ethn2_bmi), group=2)+
+  #add axis and main title
+  labs(title="Log odds for Hyperinsulinemia by BMI in Whites vs. AA (hdlcat=1)",
+       x="BMI", y="Predicted Log Odds")
