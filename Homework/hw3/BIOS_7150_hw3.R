@@ -26,7 +26,7 @@ hw3data<-read_csv(file=file.choose(), col_names = T)
 hw3data<-as_tibble(hw3data)
  
 #replace "." with "NA" for missing values in all values in all variables
-loop through each column
+#loop through each column
 for (i in seq_along(hw3data)){
   #loop through each value in each column
   for (j in seq_along(hw3data[[i]])){
@@ -123,12 +123,12 @@ detach(hw3data_bestglm)
 ##Plots of predicted log odds##
 #predicted log odds of the model
 logodds<-predict.glm(best_final.model)
-#predicted log odds of ethnic (2 levels) and hdlcat (3 levels) (bmicat=1)
+#predicted log odds of ethnic (2 levels) and hdlcat (3 levels) (bmicat=2)
 pred_ethn1_hdl<-c(-2.7014+2.5104-0.8629,-2.7014+2.5104+(2*-0.8629),
                   -2.7014+2.5104+(3*-0.8629))
 pred_ethn2_hdl<-c(-2.7014+2.5104+0.9467+-0.8629,-2.7014+2.5104+0.9467+(2*-0.8629),
                   -2.7014+2.5104+0.9467+(3*-0.8629))
-#predicted log odds of ethnic and bmicat (hdlcat=1)
+#predicted log odds of ethnic and bmicat (hdlcat=2)
 pred_ethn1_bmi<-c(-2.7014+-0.8629+2.5104,-2.7014+-0.8629+(2*2.5104),
                   -2.7014+-0.8629+(3*2.5104))
 pred_ethn2_bmi<-c(-2.7014+-0.8629+0.9467+2.5104,-2.7014+-0.8629+0.9467+(2*2.5104),
@@ -141,9 +141,9 @@ ethnhdl.data<-data.frame(pred_ethn1_hdl, pred_ethn2_hdl,
 ethnbmi.data<-data.frame(pred_ethn1_bmi, pred_ethn2_bmi,
                          names(pred_ethn1_bmi))
 #Plots for Predicted Log Odds#
-#Plot of predicted log odds for
+#Plot of predicted log odds for ethnicities vs. hdl
 p_hdl<-ggplot(ethnhdl.data)+
-  #add postmenopausal log odds points to plot
+  #add ethnic 1, hdl log odds points to plot
   geom_point(aes(x=names.pred_ethn1_hdl., y=pred_ethn1_hdl,
                  colour="Whites"), size=2.5)+
   geom_point(aes(x=names.pred_ethn1_hdl., y=pred_ethn2_hdl,
@@ -152,7 +152,7 @@ p_hdl<-ggplot(ethnhdl.data)+
   geom_line(aes(x=names.pred_ethn1_hdl., y=pred_ethn1_hdl), group=1)+
   geom_line(aes(x=names.pred_ethn1_hdl., y=pred_ethn2_hdl), group=2)+
   #add axis and main title
-  labs(title="Log odds for Hyperinsulinemia by HDL in Whites vs. AA (bmicat=1)",
+  labs(title="Log odds for Hyperinsulinemia by HDL in Whites vs. AA (bmicat=2)",
        x="HDL", y="Predicted Log Odds")
 p_bmi<-ggplot(ethnbmi.data)+
   #add postmenopausal log odds points to plot
@@ -164,5 +164,5 @@ p_bmi<-ggplot(ethnbmi.data)+
   geom_line(aes(x=names.pred_ethn1_bmi., y=pred_ethn1_bmi), group=1)+
   geom_line(aes(x=names.pred_ethn1_bmi., y=pred_ethn2_bmi), group=2)+
   #add axis and main title
-  labs(title="Log odds for Hyperinsulinemia by BMI in Whites vs. AA (hdlcat=1)",
+  labs(title="Log odds for Hyperinsulinemia by BMI in Whites vs. AA (hdlcat=2)",
        x="BMI", y="Predicted Log Odds")
