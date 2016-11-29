@@ -7,6 +7,8 @@ if(!require(Epi))
   install.packages("Epi")
 if(!require(glmulti))
   install.packages("glmulti")
+if(!require(MASS))
+  install.packages("MASS")
 
 #load the melanoma data
 #hw4.data<-read_csv(file=file.choose(), col_names=T)
@@ -36,17 +38,23 @@ ord.chronic<-factor(hw4.tibble$chronic,
 #append new 
 hw4.tibble<-add_column(hw4.tibble, ord.freckles, ord.acute, ord.chronic)
 
+####Model Selection####
+#Null model
+
 #Full Main effects model
 hw4.logit<-clogit(casecon~skin+hair+eyes+ord.freckles+ord.acute+ord.chronic+
-                    nvsmall+nvlarge+nvtot+ant15+strata(pair))
-hw4.cox<-coxph(formula = Surv(rep(1, 200L), casecon) ~ skin + hair + eyes + 
-                 ord.freckles + ord.acute + ord.chronic + nvsmall + nvlarge + 
-                 nvtot + ant15 + strata(pair), method = "exact")
+                    nvsmall+nvlarge+nvtot+ant15+strata(pair), method="exact",
+                  data=hw4.tibble)
+
 #Best subset regression for the model
-hw4.glmulti<-glmulti(hw4.logit, data=hw4.tibble, level=2, method="h",
+hw4.glmulti<-glmulti(Surv(rep(1, 200L), casecon)~skin+hair+eyes+ord.freckles+
+                       ord.acute+ord.chronic+nvsmall+nvlarge+nvtot+ant15+strata(pair),
+                     data=hw4.tibble,
+                     level=2, method="h",
                      crit="aic",
                      confsetsize = 5,
                      plotty=F, report=F,
-                     fitfunction = "coxph",
-                     family="binomial")
+                     fitfunction = "coxph")
 
+#StepWise Regression for the model
+# hw4.step=stepAIC(hw4.logit, direction="both")
