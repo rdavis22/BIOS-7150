@@ -1,8 +1,6 @@
 ####BIOS 7150 Hw 3####
 ###Loading Packages####
 #rm(list=ls())
-if(!require(plyr))
-  install.packages("plyr")
 if(!require(tidyverse))
   install.packages("tidyverse")
 if(!require(stringr))
@@ -38,37 +36,54 @@ for (i in seq_along(hw3data)){
 
 
 #convert columns to class "factor"
-hw3data<-colwise(as.factor)(hw3data)
+hw3data<-mutate_each(hw3data, funs(factor), gender, ethnic, hins, agegr,
+                     hdlcat, bmicat)
 attach(hw3data)
 
 ###initial model###
+##get unadjusted effects models
+gender.model<-glm(hins~gender, family="binomial")
+#unadjusted effect: gender.model$null.deviance-gender.model$deviance=0.4590, df=1 
+ethnic.model<-glm(hins~ethnic, family="binomial")
+#unadjusted effect: ethnic.model$null.deviance-ethnic.model$deviance=26.8743, df=1
+agegr.model<-glm(hins~agegr, family="binomial")
+#unadjusted effect: agegr.model$null.deviance-agegr.model$deviance=0.5436, df=2
+hdlcat.model<-glm(hins~hdlcat, family="binomial")
+#unadjuste effect: hdlcat.model$null.deviance-hdlcat.model$deviance=33.5768, df=2
+bmicat.model<-glm(hins~bmicat, family="binomial")
+#bmicat.model$null.deviance-bmicat.model$deviance=283.1284
+
+
 hypins.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat, family="binomial", data=hw3data)
 #summary(hypins_model)
 
 ###Testing for trend for age, hdl, and bmi###
 contrasts(agegr)<-contr.poly(3)
-cont_agegr<-as.factor(agegr)
+int.agegr<-factor(agegr,
+                  levels = c("1", "2", "3"), ordered = T)
 # .L         .Q
 # 1 -7.071068e-01  0.4082483
 # 2 -7.850462e-17 -0.8164966
 # 3  7.071068e-01  0.4082483
 # Levels: 1 2 3
 contrasts(hdlcat)<-contr.poly(3)
-cont_hdlcat<-as.factor(hdlcat)
+int.hdlcat<-factor(hdlcat,
+                   levels = c("1", "2", "3"), ordered = T)
 # .L         .Q
 # 1 -7.071068e-01  0.4082483
 # 2 -7.850462e-17 -0.8164966
 # 3  7.071068e-01  0.4082483
 # Levels: 1 2 3
 contrasts(bmicat)<-contr.poly(3)
-cont_bmicat<-as.factor(bmicat)
+int.bmicat<-factor(bmicat,
+                   levels = c("1", "2", "3"), ordered = T)
 # .L         .Q
 # 1 -7.071068e-01  0.4082483
 # 2 -7.850462e-17 -0.8164966
 # 3  7.071068e-01  0.4082483
 # Levels: 1 2 3
 ##Comment out the contrasts for hdl and bmi since there are not significant trends
-hypins_ord.model<-glm(hins~gender+ethnic+cont_agegr+cont_hdlcat+cont_bmicat, family="binomial", data=hw3data)
+hypins_ord.model<-glm(hins~gender+ethnic+int.agegr+int.hdlcat+int.bmicat, family="binomial", data=hw3data)
 #cont_agegr.L==>Pr(>|z|)=0.185
 #cont_hdlcat.L==>Pr(>|z|)=3.34e-5 (.Q=0.347)
 #cont_bmicat.L==>Pr(>|z|)=<2e-16 (.Q=0.446)
@@ -76,7 +91,7 @@ hypins_ord.model<-glm(hins~gender+ethnic+cont_agegr+cont_hdlcat+cont_bmicat, fam
 #reorder columns to have response var "hypins" in last colum for "bestglm"
 detach(hw3data)
 hw3data_bestglm<-data.frame(hw3data$gender, hw3data$ethnic, hw3data$agegr,
-                            cont_hdlcat, cont_bmicat, hw3data$hins)%>%
+                            int.hdlcat, int.bmicat, hw3data$hins)%>%
   na.omit()
 #rename the variables of the data frame
 names(hw3data_bestglm)<-c("gender", "ethnic", "agegr", "hdlcat", "bmicat"
@@ -85,7 +100,7 @@ names(hw3data_bestglm)<-c("gender", "ethnic", "agegr", "hdlcat", "bmicat"
 hypins_bestglm.model<-bestglm(hw3data_bestglm, family=binomial, IC="AIC")
 attach(hw3data_bestglm)
 #best model
-best_final.model<-glm(hins~ethnic+hdlcat+bmicat, family=binomial, data=hw3data_bestglm)
+best_final.model<-glm(hins~ethnic+hdlcat+bmicat, family=binomial, data=hw3data)
 
 ###Built-in R "step" function model selection###
 #null model
