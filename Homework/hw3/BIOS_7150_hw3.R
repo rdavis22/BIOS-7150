@@ -15,6 +15,8 @@ if(!require(bestglm))
   install.packages("bestglm")
 if(!require(multcomp))
   install.packages("multcomp")
+if(!require(MASS))
+  install.packages("MASS")
 
 
 ####Q1 Parts 1=3: Finding the Best model####
@@ -58,6 +60,9 @@ hypins.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat, family="binomial", dat
 #summary(hypins_model)
 
 ###Testing for trend for age, hdl, and bmi###
+##When run without the "how.many=1" argument, none of the Quadratic terms...
+##are significant so we correct the formula with "how.many=1" to just keep...
+##the linear terms.
 contrasts(agegr)<-contr.poly(3)
 int.agegr<-factor(agegr,
                   levels = c("1", "2", "3"), ordered = T)
@@ -76,17 +81,22 @@ int.hdlcat<-factor(hdlcat,
 # Levels: 1 2 3
 contrasts(bmicat)<-contr.poly(3)
 int.bmicat<-factor(bmicat,
-                   levels = c("1", "2", "3"), ordered = T)
+               levels = c("1", "2", "3"), ordered = T)
 # .L         .Q
 # 1 -7.071068e-01  0.4082483
 # 2 -7.850462e-17 -0.8164966
 # 3  7.071068e-01  0.4082483
 # Levels: 1 2 3
+
+
 ##Comment out the contrasts for hdl and bmi since there are not significant trends
-hypins_ord.model<-glm(hins~gender+ethnic+int.agegr+int.hdlcat+int.bmicat, family="binomial", data=hw3data)
+hypins_ord.model<-glm(hins~gender+ethnic+int.agegr+int.hdlcat+int.bmicat,
+                      family="binomial", data=hw3data)
+
 #cont_agegr.L==>Pr(>|z|)=0.185
 #cont_hdlcat.L==>Pr(>|z|)=3.34e-5 (.Q=0.347)
 #cont_bmicat.L==>Pr(>|z|)=<2e-16 (.Q=0.446)
+
 ###"Bestglm"###
 #reorder columns to have response var "hypins" in last colum for "bestglm"
 detach(hw3data)
@@ -99,8 +109,9 @@ names(hw3data_bestglm)<-c("gender", "ethnic", "agegr", "hdlcat", "bmicat"
 #run best glm
 hypins_bestglm.model<-bestglm(hw3data_bestglm, family=binomial, IC="AIC")
 attach(hw3data_bestglm)
+
 #best model
-best_final.model<-glm(hins~ethnic+hdlcat+bmicat, family=binomial, data=hw3data)
+best_final.model<-glm(hins~ethnic+int.hdlcat+int.bmicat, family=binomial, data=hw3data)
 
 ###Built-in R "step" function model selection###
 #null model
@@ -122,17 +133,18 @@ hw3_step.model <- step(hw3_null.model, list(lower=formula(hw3_null.model),
                        direction="both",trace=0)
 
 ###Q1 Part 4: Odds Ratios and Plots of predicted log odds####
-##Get pairwise comparisons##
+##Get pairwise comparisons## *Note!!! This only works for orthogonal coding!...
+##Not interval coding!!!
 #Odds Ratios for multiple comparison test of "ethnic"
-K1 <- glht(best_final.model, mcp(ethnic = "Tukey"))$linfct
-#Odds Ratios for multiple comparison test of "hdlcat"
-K2 <- glht(best_final.model, mcp(hdlcat = "Tukey"))$linfct
-#Odds Ratios for multiple comparison test of "bmicat"
-K3 <- glht(best_final.model, mcp(bmicat = "Tukey"))$linfct
-#All pairwise comparison tests
-All_OR <- glht(best_final.model, linfct = rbind(K1, K2, K3))
-#Get Confidence Intervals
-All_OR_cint <-confint(All_OR)
+# K1 <- glht(best_final.model, mcp(ethnic = "Tukey"))$linfct
+# #Odds Ratios for multiple comparison test of "hdlcat"
+# K2 <- glht(best_final.model, mcp(int.hdlcat = "Tukey"))$linfct
+# #Odds Ratios for multiple comparison test of "bmicat"
+# K3 <- glht(best_final.model, mcp(int.bmicat = "Tukey"))$linfct
+# #All pairwise comparison tests
+# All_OR <- glht(best_final.model, linfct = rbind(K1, K2, K3))
+# #Get Confidence Intervals
+# All_OR_cint <-confint(All_OR)
 detach(hw3data_bestglm)
 
 ##Plots of predicted log odds##
