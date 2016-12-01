@@ -33,24 +33,31 @@ ord.age<-factor(mg.data$age,
 # 3  7.071068e-01  0.4082483
 # Levels: 1 2 3
 
+mg.data$cont_age<-as.numeric(ord.age)
+
 #get the model with interval coded covariate for bmi
 hw3_p2_ord.model<-glm(mg~num_part+trich+ord.age+num_part*trich,
                       data=mg.data, weights = Count, family=binomial)
+
+#get the final model with an interval (i.e. "numeric") "age" variable
+hw3_p2_int.model<-glm(mg~num_part+trich+cont_age+num_part*trich,
+                      data=mg.data, weights = Count, family=binomial)
+
 #get the saturated model for GoF comparion
-hw3_p2_sat.model<-glm(mg~num_part+trich+age+num_part*trich+num_part*age+trich*age,
-                      weights=Count, data=mg.data, family=binomial)
+hw3_p2_sat.model<-glm(mg~num_part+trich+cont_age+num_part*trich+num_part*cont_age
+                      +trich*cont_age, weights=Count, data=mg.data, family=binomial)
 
 #get odds ratios
 #create an interaction term column for the data
 mg.data$num_part.trich<-interaction(mg.data$num_part, mg.data$trich)
 #run the model again with the interaction column predictor
-intrct.model<-glm(mg~ord.age+num_part.trich, 
+intrct.model<-glm(mg~cont_age+num_part.trich, 
                   data=mg.data, weight=Count, family=binomial)
 
 #get the matrix of coefficients using the "cont_age" and interaction term
-K1<-glht(intrct.model, mcp(ord.age = "Tukey"))$linfct #only does dummy coded
+#K1<-glht(intrct.model, mcp(cont_age = "Tukey"))$linfct #only does dummy coded
 K2<-glht(intrct.model, mcp(num_part.trich = "Tukey"))$linfct
-All_OR <- glht(intrct.model, linfct = rbind(K1, K2))
+All_OR <- glht(intrct.model, linfct = K2)#rbind(K1, K2))
 All_OR_cint <-confint(All_OR)
 
 ####Plots of predicted log Odds####
@@ -61,6 +68,8 @@ All_OR_cint <-confint(All_OR)
 # lodds_num0_part1<-lodds_model[seq(from=7, to=12, by=2)]
 # lodds_num1_part0<-lodds_model[seq(from=13, to=18, by=2)]
 # lodds_num1_part1<-lodds_model[seq(from=19, to=24, by=2)]
+##***Need to adjust these values for future work based on the hw3_p2_int.model
+##...data (see if these can be automated)
 lodds_age_num_trich_11<-c(-1.3881, -2.2474, -3.1067)
 lodds_age_num_trich_10<-c(-2.3959, -3.2552, -4.1145)
 lodds_age_num_trich_01<-c(-3.7312, -4.5905, -5.4498)
