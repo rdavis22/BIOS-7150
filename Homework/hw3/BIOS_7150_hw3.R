@@ -111,16 +111,17 @@ hypins_bestglm.model<-bestglm(hw3data_bestglm, family=binomial, IC="AIC")
 attach(hw3data_bestglm)
 
 #best model
-best_final.model<-glm(hins~ethnic+int.hdlcat+int.bmicat, family=binomial, data=hw3data)
+best_final.model<-glm(hins~ethnic+as.numeric(int.hdlcat)+
+                        as.numeric(int.bmicat), family=binomial, data=hw3data)
 
 ###Built-in R "step" function model selection###
 #null model
 hw3_null.model <- glm(hins~ 1, data=hw3data_bestglm, family=binomial)
 #saturated model
-hw3_sat.model<-glm(hins~gender+ethnic+agegr+hdlcat+bmicat+gender*ethnic+
-                     gender*agegr+gender*hdlcat+gender*bmicat+ethnic*agegr+
-                     ethnic*hdlcat+ethnic*bmicat+agegr*hdlcat+agegr*bmicat+
-                     hdlcat*bmicat, data=hw3data_bestglm, family=binomial)
+hw3_sat.model<-glm(hins~gender+ethnic+agegr+as.numeric(hdlcat)+as.numeric(bmicat)+gender*ethnic+
+                     gender*agegr+gender*as.numeric(hdlcat)+gender*as.numeric(bmicat)+ethnic*agegr+
+                     ethnic*as.numeric(hdlcat)+ethnic*as.numeric(bmicat)+agegr*as.numeric(hdlcat)+agegr*as.numeric(bmicat)+
+                     as.numeric(hdlcat)*as.numeric(bmicat), data=hw3data_bestglm, family=binomial)
 #forward selection
 hw3_forward.model <- step(hw3_null.model, scope=list(lower=formula(hw3_null.model),
                                         upper=formula(hw3_sat.model)),
