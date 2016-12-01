@@ -53,38 +53,55 @@ K2<-glht(intrct.model, mcp(num_part.trich = "Tukey"))$linfct
 All_OR <- glht(intrct.model, linfct = rbind(K1, K2))
 All_OR_cint <-confint(All_OR)
 
-##Plots of predicted log Odds##
+####Plots of predicted log Odds####
+## 1) Age on X-axis
 #get the predicted log odds (trich=0)
 # lodds_model<-predict.glm(intrct.model)
 # lodds_num0_part0<-lodds_model[seq(from=1, to=6, by=2)]
 # lodds_num0_part1<-lodds_model[seq(from=7, to=12, by=2)]
 # lodds_num1_part0<-lodds_model[seq(from=13, to=18, by=2)]
 # lodds_num1_part1<-lodds_model[seq(from=19, to=24, by=2)]
-lodds_num_trich_11<-c(-1.3881, -2.2474, -3.1067)
-lodds_num_trich_10<-c(-2.3959, -3.2552, -4.1145)
-lodds_num_trich_01<-c(-3.7312, -4.5905, -5.4498)
-lodds_num_trich_00<-c(-3.1535, -4.0128, -4.8721)
-names(lodds_num_trich_11)<-c("age1", "age2", "age3")
+lodds_age_num_trich_11<-c(-1.3881, -2.2474, -3.1067)
+lodds_age_num_trich_10<-c(-2.3959, -3.2552, -4.1145)
+lodds_age_num_trich_01<-c(-3.7312, -4.5905, -5.4498)
+lodds_age_num_trich_00<-c(-3.1535, -4.0128, -4.8721)
+names(lodds_age_num_trich_11)<-c("age1", "age2", "age3")
 
-num_part.data<-data.frame(lodds_num_trich_00, lodds_num_trich_01,
-                          lodds_num_trich_10, lodds_num_trich_11,
-                          names(lodds_num_trich_11))
+num_part_age.data<-data.frame(lodds_age_num_trich_00, lodds_age_num_trich_01,
+                          lodds_age_num_trich_10, lodds_age_num_trich_11,
+                          names(lodds_age_num_trich_11))
 
-p_num_part<-ggplot(num_part.data)+
+p_age<-ggplot(num_part_age.data)+
   #add ethnic 1, hdl log odds points to plot
-  geom_point(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_00,
+  geom_point(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_00,
                  colour="num0trich0"), size=2.5)+
-  geom_point(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_01,
+  geom_point(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_01,
                  colour="num0trich1"), size=2.5)+
-  geom_point(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_10,
+  geom_point(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_10,
                  colour="num1trich0"), size=2.5)+
-  geom_point(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_11,
+  geom_point(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_11,
                  colour="num1trich1"), size=2.5)+
 #add a connecting line between points to plot
-  geom_line(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_00), group=1)+
-  geom_line(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_01), group=2)+
-  geom_line(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_10), group=3)+
-  geom_line(aes(x=names.lodds_num_trich_11., y=lodds_num_trich_11), group=4)+
+  geom_line(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_00), group=1)+
+  geom_line(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_01), group=2)+
+  geom_line(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_10), group=3)+
+  geom_line(aes(x=names.lodds_age_num_trich_11., y=lodds_age_num_trich_11), group=4)+
   #add axis and main title
   labs(title="Log odds for Number of Part. and Trich vs. Age",
        x="Age", y="Predicted Log Odds")
+
+## 2) Num_part on X-axis
+lodds_num01_trich0<-c(-3.1493, -2.3959) #trich 0
+lodds_num01_trich1<-c(-3.727, -1.3839) #trich 1
+names(lodds_num01_trich1)<-c("num_part0", "num_part1")
+num_part.data<-data.frame(lodds_num01_trich0, lodds_num01_trich1,
+                          names(lodds_num01_trich1))
+p_num_part<-ggplot(num_part.data)+
+  geom_point(aes(x=names.lodds_num01_trich1., y=lodds_num01_trich0,
+                 colour="trich0"), size=2.5)+
+  geom_point(aes(x=names.lodds_num01_trich1., y=lodds_num01_trich1,
+                 colour="trich1"), size=2.5)+
+  geom_line(aes(x=names.lodds_num01_trich1., y=lodds_num01_trich0), group=1)+
+  geom_line(aes(x=names.lodds_num01_trich1., y=lodds_num01_trich1), group=2)+
+  labs(title="Log odds for Trichomonas Status vs. Number of Partners",
+       x="Number of Partners", y="Predicted Log Odds")
