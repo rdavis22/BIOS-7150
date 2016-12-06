@@ -47,18 +47,21 @@ hw3_p2_int.model<-glm(mg~num_part+trich+cont_age+num_part*trich,
 hw3_p2_sat.model<-glm(mg~num_part+trich+cont_age+num_part*trich+num_part*cont_age
                       +trich*cont_age, weights=Count, data=mg.data, family=binomial)
 
-#get odds ratios
-#create an interaction term column for the data
-mg.data$num_part.trich<-interaction(mg.data$num_part, mg.data$trich)
-#run the model again with the interaction column predictor
-intrct.model<-glm(mg~cont_age+num_part.trich, 
-                  data=mg.data, weight=Count, family=binomial)
+###get odds ratios (Revise this code to automate in the future)
+# #create an interaction term column for the data
+# mg.data$num_part.trich<-interaction(mg.data$num_part, mg.data$trich)
+# #run the model again with the interaction column predictor
+# intrct.model<-glm(mg~cont_age+num_part.trich, 
+#                   data=mg.data, weight=Count, family=binomial)
+# 
+# #get the matrix of coefficients using the "cont_age" and interaction term
+# #K1<-glht(intrct.model, mcp(cont_age = "Tukey"))$linfct #only does dummy coded
+# # K2<-glht(intrct.model, mcp(num_part.trich = "Tukey"))$linfct
+# # All_OR <- glht(intrct.model, linfct = K2)#rbind(K1, K2))
+# # All_OR_cint <-confint(All_OR)
 
-#get the matrix of coefficients using the "cont_age" and interaction term
-#K1<-glht(intrct.model, mcp(cont_age = "Tukey"))$linfct #only does dummy coded
-K2<-glht(intrct.model, mcp(num_part.trich = "Tukey"))$linfct
-All_OR <- glht(intrct.model, linfct = K2)#rbind(K1, K2))
-All_OR_cint <-confint(All_OR)
+##Add the covariance matrix to get cov values for building CI's
+cov_mat<-vcov(hw3_p2_int.model)
 
 ####Plots of predicted log Odds####
 ## 1) Age on X-axis
