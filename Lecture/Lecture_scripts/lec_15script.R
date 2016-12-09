@@ -9,8 +9,8 @@ lec15.tibble$improv<-factor(improv)
 lec15.tibble$treat<-factor(treat)
 lec15.tibble$sex<-factor(sex)
 lec15.tibble$age<-factor(age)
-attach(lec15.tibble)
 #fit to fixed main effects model
+attach(lec15.tibble)
 arthritis <-glm(improv~treat+sex+age, family = "binomial", data=lec15.tibble)
 #summary(arthritis)
 
