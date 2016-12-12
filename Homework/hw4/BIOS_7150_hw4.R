@@ -23,6 +23,40 @@ hw4.data<-mutate_each(hw4.data, funs(factor), skin, hair, eyes,
                         freckles, acute, chronic)
 attach(hw4.data)
 
+##Data Description##
+#skin
+n_dark<-length(skin[skin==0]) #number dark-skinned
+n_medium<-length(skin[skin==1]) #number medium skinned
+n_light<-length(skin[skin==2]) #number light-skinned
+
+#hair
+n_h_black<-length(hair[hair==0]) #number black hair
+n_h_brown<-length(hair[hair==1]) #number light brown hair
+n_h_blonde<-length(hair[hair==2]) #number blonde hair
+n_h_red<-length(hair[hair==3]) #number red hair
+
+#eyes
+n_e_brown<-length(eyes[eyes==0]) #number with borwn eyes
+n_e_grey_green<-length(eyes[eyes==1]) #number with grey/green eyes
+n_e_blue<-length(eyes[eyes==2]) #number with blue eyes
+
+#freckles
+n_f_many<-length(freckles[freckles==1]) #number of subjects with many freckles
+n_f_some<-length(freckles[freckles==2]) #number of subjects with some
+n_f_none<-length(freckles[freckles==3]) #number with no freckles
+
+#acute reaction to sunlight
+n_a_blister<-length(acute[acute==1]) #blistering sunburn
+n_a_pain<-length(acute[acute==2]) #pain sunburn
+n_a_mild<-length(acute[acute==3]) #mild suburn
+n_a_no<-length(acute[acute==4]) #no suburn
+
+#chronic reaction to sunlight
+n_c_deep<-length(chronic[chronic==1]) #deep tan
+n_c_mod<-length(chronic[chronic==2]) #moderate tan
+n_c_mild<-length(chronic[chronic==3]) #mild tan
+n_c_no<-length(chronic[chronic==4]) #no tan
+
 #check for appropriateness of ordinal simplification in ordinal categorical...
 #variables "freckles", "acute", and "chronic"
 contrasts(hw4.data$freckles) <- contr.poly(3)
