@@ -13,6 +13,9 @@ if(!require(bestglm))
   install.packages("bestglm")
 if(!require(car))
   install.packages("car")
+if(!require(rms))
+  install.packages("rms")
+
 
 ####Q1####
 #Read in the "takehome_drug.csv" file
@@ -72,25 +75,78 @@ vacc_95CI<-c(exp(ln_vacc_95CI[1]), exp(ln_vacc_95CI[2]))
 #the response and stratification variables remain integer
 detach(q2.data)
 q2.data<-mutate_each(q2.data, funs(factor), race, sex, age, vaccine)
-attach(q2.data)
 
 #convert sex =9 to sex =2
-for(i in seq_along(q2.data$sex)){
-  if (q2.data$sex[i]==9){
-    q2.data$sex[i]==2
-  }
-}
+q2.data$sex<-Recode(q2.data$sex, "c('2','9')='2'; else='1'")
 
-#matched only on age
-q2.unmatch.clogit <- clogit(satis ~ vaccine + 
+##Model Selection
+#unadjusted effects
+#L_2.vaccine<- -2*(q2.vaccine.clogit$loglik[1]-q2.vaccine.clogit$loglik[2])
+q2.vaccine.clogit<-clogit(satis ~ vaccine + strata(set) , q2.data)
+#L_2.race<- -2*(q2.race.clogit$loglik[1]-q2.race.clogit$loglik[2])
+q2.race.clogit<-clogit(satis ~ race + strata(set) , q2.data)
+#L_2.race<- -2*(q2.race.clogit$loglik[1]-q2.race.clogit$loglik[2])
+q2.sex.clogit<-clogit(satis ~ sex + strata(set) , q2.data)
+
+#matched only on age (essentially FME)
+q2.fme.clogit <- clogit(satis ~ vaccine + 
                               race + sex + strata(set) , q2.data)
-#matched on age, sex, and race
-q2.match.clogit <- clogit(satis ~ vaccine + strata(set) , q2.data)
+#saturated model
+q2.sat.clogit <- clogit(satis~vaccine+race+sex+vaccine*race+
+                          vaccine*sex+race*sex+strata(set), q2.data)
 
 ##Model selection
-#Develop code for stepAIC based on table of effects 
+#stepwise selection with just the full main effects
+q2.stepfme.clogit<-stepAIC(q2.fme.clogit, direction="both")
 
-detach(q2.data)
+#stepwise selection with all two-way interactions
+q2.stepintrct.clogit<-stepAIC(q2.sat.clogit, direction="both")
+
+#***Final Model***
+#combine levels 3, 4, 9 of race
+for (i in 1:length(q2.data$race)){
+  if (q2.data$race[i]==4){
+    q2.data$race[i]<-3
+  } else if(q2.data$race[i]==9){
+    q2.data$race[i]<-3
+  }
+}
+q2.data$race<-factor(q2.data$race)
+
+#checking for linear trend with race variable
+#contrasts(race)<-contr.poly(5)
+#ord.race<-factor(race, levels=c("1", "2", "3", "4", "9"), ordered = T)
+# coef exp(coef) se(coef)     z Pr(>|z|)  
+# ord.race.L 0.2002   1.2217  0.1999 1.002   0.3166  
+# ord.race.Q -0.2660  0.7664  0.1311 -2.029   0.0425*  
+
+##Final model
+q2.final.clogit<-clogit(satis~vaccine+race+sex+strata(set), q2.data)
+##Plot of predicted log odds
+#plot of predicted log odds vs. race (by vaccine status)
+p_race<-ggplot()+
+  geom_point(aes(x=c("1", "2", "3"), y=c(2.8082, 3.139, 2.6846),
+                 colour="Shot"))+
+  geom_line(aes(x=c("1", "2", "3"), y=c(2.8082, 3.139, 2.6846)), group=1)+
+  geom_point(aes(x=c("1", "2", "3"), y=c(0, 0.3308, -0.1236),
+                 colour="Nasal"))+
+  geom_line(aes(x=c("1", "2", "3"), y=c(0, 0.3308, -0.1236)), group=2)+
+  labs(title="Predicted Log Odds of Discomfort vs. Race (by Vaccine type)",
+       y="Predicted Log Odds", x="Race")
+
+#plot of predicted log odds vs. Vaccine type (by Race)
+p_vacc<-ggplot()+
+  geom_point(aes(x=c("Nasal", "Shot"), y=c(0, 2.8082),
+                 colour="Race 1"))+
+  geom_line(aes(x=c("Nasal", "Shot"), y=c(0, 2.8082)), group=1)+
+  geom_point(aes(x=c("Nasal", "Shot"), y=c(0.3308, 3.139),
+                 colour="Race 2"))+
+  geom_line(aes(x=c("Nasal", "Shot"), y=c(0.3308, 3.139)), group=2)+
+  geom_point(aes(x=c("Nasal", "Shot"), y=c(-0.1236, 2.6846),
+                 colour="Race 3"))+
+  geom_line(aes(x=c("Nasal", "Shot"), y=c(-0.1236, 2.6846)), group=3)+
+  labs(title="Predicted Log Odds of Discomfort vs. Vaccine Status (by Race)",
+       y="Predicted Log Odds", x="Vaccine status")
 
 ####Q3####
 #Read in "framing.dat"
