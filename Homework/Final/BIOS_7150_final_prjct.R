@@ -15,7 +15,8 @@ if(!require(car))
   install.packages("car")
 if(!require(rms))
   install.packages("rms")
-
+if(!require(ResourceSelection))
+  install.packages("ResourceSelection")
 
 ####Q1####
 #Read in the "takehome_drug.csv" file
@@ -151,12 +152,42 @@ p_vacc<-ggplot()+
 ####Q3####
 #Read in "framing.dat"
 q3.data<-read_table(file=file.choose(), col_names = TRUE)
-# attach(q3.data)
+attach(q3.data)
+
+#convert "frw" into
+q3.data<-mutate_each(q3.data, funs(as.integer), frw)
+
+##Data description
+n_chdcase<-sum(chd) #number of cases of chd
+n_chdcontrols<-length(chd[chd==0]) #number of controls of chd
+#age
+avg_age<-mean(age)
+sd_age<-sd(age)
+med_age<-median(age)
+#sbp
+avg_sbp<-mean(sbp)
+sd_sbp<-sd(sbp)
+med_sbp<-median(sbp)
+#dbp
+avg_dbp<-mean(dbp)
+sd_dbp<-sd(dbp)
+med_dbp<-median(dbp)
+#tchol
+avg_tchol<-mean(tchol)
+sd_tchol<-sd(tchol)
+med_tchol<-median(tchol)
+#frw
+avg_frw<-mean(frw[is.na(frw)==F])
+sd_frw<-sd(frw[is.na(frw)==F])
+med_frw<-median(frw[is.na(frw)==F])
+#cig
+avg_cig<-mean(cig[is.na(cig)==F])
+sd_cig<-sd(cig[is.na(cig)==F])
+med_cig<-median(cig[is.na(cig)==F])
 
 #turn chd into a "factor", as it is a binomial response.
 q3.data<-mutate_each(q3.data, funs(factor), chd)
-#convert "frw" into
-q3.data<-mutate_each(q3.data, funs(as.integer), frw)
+
 
 #replace "." with "NA" for missing values in all values in all variables
 #loop through each column
@@ -214,10 +245,10 @@ for (i in seq_along(q3.data$dbp)){
 #turn "fac_dbp" into a factor
 q3.data$fac_dbp<-factor(q3.data$fac_dbp)
 
+detach(q3.data)
+
 ###Model Selection###
 ##Unadjusted effects##
-attach(q3.data)
-
 #unadjusted effects: model$null.deviance-model$deviance
 q3.age.model<-glm(chd~age, family="binomial")
 q3.sbp.model<-glm(chd~sbp, family="binomial")
@@ -242,15 +273,62 @@ bestglm.fac.data<-data.frame(age, fac_sbp, fac_dbp, tchol, frw, cig, chd)%>%
   na.omit()
 
 #run best subsets regression
-q3bestglm.cont.model<-bestglm(bestglm.cont.data, family=binomial, IC="AIC")
+q3bestglm.cont.model<-bestglm(bestglm.cont.data, family=binomial, IC="AIC",
+                              method="exhaustive")
+#get the Nagelkerke R^2 value
+q3.contlrm<-lrm(chd~age+sbp+tchol+cig, data=bestglm.cont.data)
 #run best glm
-q3bestglm.fac.model<-bestglm(bestglm.fac.data, family=binomial, IC="AIC")
+q3bestglm.fac.model<-bestglm(bestglm.fac.data, family=binomial, IC="AIC",
+                             method="exhaustive")
+#get the Nagelkerke R^2 value
+q3.faclrm<-lrm(chd~age+fac_sbp+fac_dbp+tchol+frw+cig, data=bestglm.fac.data)
 
 #develop code for "stepAIC" based on table of effects
-q3sat.model<-(chd~age+sbp+dbp+tchol+frw+cig+age*sbp+age*dbp+age*tchol
+q3sat.model<-glm(chd~age+sbp+dbp+tchol+frw+cig+age*sbp+age*dbp+age*tchol
               +age*frw+age*cig+sbp*dbp+sbp*tchol+sbp*frw+sbp*cig+dbp*tchol
-              +dbp*tchol+dbp*frw+dbp*cig+tchol*frw+tchol*frw+frw*age, 
-              family="binomial")
+              +dbp*tchol+dbp*frw+dbp*cig+tchol*frw+tchol*frw+frw*age,
+              family="binomial", data=bestglm.cont.data)
+
+#stepwise regression (this was the final model)
+q3.step.model<-stepAIC(q3sat.model, direction="both") 
+#confidence intervals for final model
+OR_q3.step<-exp(cbind(OR = coef(q3.step.model), confint.default(q3.step.model)))
+
+##Plots of Predicted Log Odds
+#plot of predicted lnodds vs. tchol
+p_tchol<-ggplot()+
+  geom_point(aes(x=c("230", "235", "240"), 
+             y=c(13.4119,13.6574,13.8989),colour="dp85"))+
+  geom_line(aes(x=c("230", "235", "240"), 
+            y=c(13.4119,13.6574,13.8989), group=1))+
+  geom_point(aes(x=c("230", "235", "240"),
+             y=c(13.2509,13.4881,13.7252), colour="dp90"))+
+  geom_line(aes(x=c("230", "235", "240"),
+                y=c(13.2509,13.4881,13.7252), group=2))+
+  geom_point(aes(x=c("230", "235", "240"), 
+             y=c(13.09,13.3208,13.5516), colour="dp95"))+
+  geom_line(aes(x=c("230", "235", "240"), 
+                y=c(13.09,13.3208,13.5516), group=3))+
+  labs(title="Predicted LnOdds of CHD vs. Tot. Cholesterol (by DBP)",
+       x="Total cholesterol(mg/dL)", y="Predicted LnOdds")
+
+#plot of predicted lnodds vs. dbp
+p_dbp<-ggplot()+
+  geom_point(aes(x=c("85", "90", "95"), 
+                 y=c(13.4119,13.2509,13.09),colour="tchol230"))+
+  geom_line(aes(x=c("85", "90", "95"), 
+                y=c(13.4119,13.2509,13.09), group=1))+
+  geom_point(aes(x=c("85", "90", "95"),
+                 y=c(13.6554,13.4881,13.3208), colour="tchol235"))+
+  geom_line(aes(x=c("85", "90", "95"),
+                y=c(13.6554,13.4881,13.3208), group=2))+
+  geom_point(aes(x=c("85", "90", "95"), 
+                 y=c(13.8989,13.7252,13.5516), colour="tchol240"))+
+  geom_line(aes(x=c("85", "90", "95"), 
+                y=c(13.8989,13.7252,13.5516), group=3))+
+  labs(title="Predicted LnOdds of CHD vs. Diastolic BP (by tchol)",
+       x="DBP(mmHg)", y="Predicted LnOdds")
+  
 
 detach(q3.data)
 ####Q4####
