@@ -349,13 +349,33 @@ for (i in seq_along(q4.data)){
   }
 }
 
+#turn BMI into class "numeric"
+q4.data<-mutate_each(q4.data, funs(as.numeric), BMI, race2)
+attach(q4.data)
+##Data Description
+n_q4cases<-sum(compout2) #number of cases
+n_q4controls<-length(compout2)-n_q4cases #number of controls
+
+#BMI
+n_q4missBMI<-sum(is.na(BMI)) #number of missing BMI subjects
+avg_q4BMI<-mean(BMI[is.na(BMI)==F]) #mean of BMI
+sd_q4BMI<-sd(BMI[is.na(BMI)==F]) #standard deviation of BMI
+avg_q4BMIcase<-mean(BMI[is.na(BMI)==F&compout2==1]) #mean of BMI in cases
+sd_q4BMIcase<-sd(BMI[is.na(BMI)==F&compout2==1]) #standard deviation of BMI cases
+
+#age
+n_q4missage<-sum(is.na(age)) #number of missing age categories
+avg_q4age<-mean(age[is.na(age)==F]) #mean of age
+sd_q4age<-sd(age[is.na(age)==F]) #standard deviation of age
+avg_q4agecase<-mean(age[is.na(age)==F&compout2==1]) #mean of age in cases
+sd_q4agecase<-sd(age[is.na(age)==F&compout2==1]) #standard deviation of age cases
+
+detach(q4.data)
 #turn "ER_ELC", "sex", "race", "precat",...
 # "compout2", & "comorb" into class factor
 q4.data<-mutate_each(q4.data, funs(factor), ER_ELC, sex, race2, precat,
                      compout2, comorb)
 
-#turn BMI into class "numeric"
-q4.data<-mutate_each(q4.data, funs(as.numeric), BMI)
 
 #uandjusted effect of "precat" on outcome "compout2"
 attach(q4.data)
@@ -369,23 +389,59 @@ sex.model<-glm(compout2~sex, family="binomial")
 race2.model<-glm(compout2~race2, family="binomial")
 comorb.model<-glm(compout2~comorb, family="binomial")
 
-##Adjusted Effects##
-#get FME model
-q4fme.model<-glm(compout2~precat+BMI+ER_ELC+age+sex+race2+comorb,
-                 family="binomial")
+##linear trend for the "precat" predictor
+#plot of predicted log odds vs. precat
+p_precat_lin<-ggplot()+
+  geom_point(aes(x=c("1", "2", "3", "4", "5", "6"),
+                 y=c(0, -.4055, -0.3773, -1.6895, -1.3530, -1.5669)))+
+  geom_line(aes(x=c("1", "2", "3", "4", "5", "6"),
+            y=c(0, -.4055, -0.3773, -1.6895, -1.3530, -1.5669)), group=1)+
+  labs(title="Test for linear trend for 'precat'", x="precat level",
+       y="predicted log odds of bad outcome")
 
+#testing the precat predictor for linear trend
+# contrasts(precat)<-contr.poly(6)
+# ord.precat<-factor(precat, levels=c("1", "2", "3", "4", "5", "6"), ordered = T)
+# q4.lintrend.model<-glm(compout2~ord.precat, family="binomial")
+
+#linear trend was significant; convert precat to continuous
+detach(q4.data)
+q4.data<-mutate_each(q4.data, funs(as.numeric), precat)
+attach(q4.data)
 ##Model Selection
+#FME model
+q4.fme.model<-glm(compout2~precat+BMI+ER_ELC, family="binomial")
+
 #Best subset regression model selection
-q4bestglm.data<-data.frame(precat, BMI, ER_ELC, age, 
-                           sex, race2, comorb, compout2)%>%
+q4bestglm.data<-data.frame(precat, BMI, ER_ELC, compout2)%>%
 na.omit()
 q4bestglm.model<-bestglm(q4bestglm.data, family=binomial, IC="AIC")
+#best model
+q4.best.model<-glm(compout2~precat+BMI+ER_ELC, data=q4.data, family="binomial")
 
-#get saturated model
-# q4sat.model<-glm(compout2~precat+BMI+ER_ELC+age+sex+race2+comorb+precat*BMI
-#                +precat*ER_ELC+precat*age+precat*sex+precat*race2
-#                +precat*comorb+BMI*ER_ELC+BMI*age+BMI*sex+BMI*race2
-#                +BMI*comorb+ER_ELC*age+ER_ELC*sex+ER_ELC*race2+ER_ELC*comorb
-#                +age*sex+age*race2+age*comorb+sex*race2+sex*comorb
-               # +race2*comorb, family="binomial")
+#get saturated model with predictors of interest
+q4sat.model<-glm(compout2~precat+BMI+ER_ELC+
+                   precat*BMI+precat*ER_ELC+BMI*ER_ELC, data=q4.data,
+                 family="binomial")
 #develop stepAIC code based on table of effects and saturated model
+q4.step.model<-stepAIC(q4sat.model, direction = "both")
+
+#Odds Ratios for the final model
+OR_q4.best<-exp(cbind(OR = coef(q4.best.model), confint.default(q4.best.model)))
+
+#Plots of predicted log odds
+p_precat<-ggplot()+
+  geom_point(aes(x=c("1", "2", "3", "4", "5", "6"),
+                 y=c(-.2310, -.4621, -.6931, -.9241, -1.1552, -1.3862),
+                 colour="ER_ELC=0"))+
+  geom_line(aes(x=c("1", "2", "3", "4", "5", "6"),
+                y=c(-.2310, -.4621, -.6931, -.9241, -1.1552, -1.3862)),
+            group=1)+
+  geom_point(aes(x=c("1", "2", "3", "4", "5", "6"),
+                 y=c(.9426, .7115, .4805, .2495, .0184, -.2126),
+                 colour="ER_ELC=1"))+
+  geom_line(aes(x=c("1", "2", "3", "4", "5", "6"),
+                y=c(.9426, .7115, .4805, .2495, .0184, -.2126)),
+            group=2)+
+  labs(title="Predicted Log Odds of Bad Outcome vs. precat",
+       x="precat level", y="predicted log odds")
